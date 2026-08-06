@@ -41,7 +41,16 @@ python3 -m http.server 8000
 
 ## 部署
 
-这是纯静态站点，把整个目录推到 GitHub 仓库后在 Settings → Pages 选择分支即可，或直接把目录拖进 Vercel / Netlify。
+线上地址：<https://steamcalc.vercel.app>（Vercel 托管，项目名 `steamcalc`）。
+
+这是纯静态站点，无构建步骤。已关联 GitHub 仓库，push 到 `main` 分支会触发 Vercel 自动重新部署。也可以把整个目录拖进 Netlify 等其他静态托管。
+
+本地预览：
+
+```bash
+python3 -m http.server 8000
+# 浏览器打开 http://localhost:8000
+```
 
 ## 文件结构
 
@@ -54,3 +63,15 @@ python3 -m http.server 8000
 
 - 价格数据来自 IsThereAnyDeal 与 CheapShark，仅供参考，实际以商店页面为准
 - 使用 ITAD API 需遵守其 [API 条款](https://docs.isthereanydeal.com/)（免费层为每 5 分钟 1000 次请求）
+
+## Roadmap
+
+待确认：尚无公开的后续计划，有规划时在此补充。
+
+## License
+
+待确认：仓库中尚未包含 License 文件，添加前默认保留所有权利。
+
+## 贡献
+
+待确认：暂无贡献指南。目前可直接提 Issue 或 PR；如有代码改动约定会在此补充。
