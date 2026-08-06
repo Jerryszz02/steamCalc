@@ -18,16 +18,19 @@
 
 ## 选定方案与文件职责
 
-纯静态、零依赖、无构建。四个文件职责：
+运行时纯静态、零依赖、无构建；开发依赖只有 Vitest 测试体系（不进入部署产物）。前端文件全部为 ES Modules（`package.json` 含 `"type": "module"`）。
 
 | 文件 | 职责 |
 |---|---|
-| `index.html` | 页面结构；以 `?v=2` 查询串引用 `style.css` / `api.js` / `app.js` 做缓存刷新 |
+| `index.html` | 页面结构；以 `<script type="module" src="app.js?v=N">` 加载入口，`?v=N` 用于缓存刷新 |
 | `style.css` | Steam 风格深色主题，CSS 变量定义配色 |
 | `api.js` | 两个数据源的 fetch 封装 + `ApiError` 错误分类 + 价格/日期格式化 |
-| `app.js` | 全部状态与交互：搜索、详情渲染、史低判定、愿望单、设置、初始化 |
+| `logic.js` | 纯函数：史低判定 `computeVerdict`、ITAD 摘要提取 `summarizeItad`，不碰 DOM/网络，可独立测试 |
+| `app.js` | 入口模块：状态、DOM 交互、搜索/详情/愿望单/设置/初始化 |
+| `tests/` | Vitest 用例（`logic.test.js` / `api.test.js`） |
+| `package.json` / `vitest.config.js` | 测试脚本与配置（jsdom 环境、覆盖率范围） |
 
-`api.js` 必须先于 `app.js` 加载（`app.js` 直接调用其中的全局函数，无模块系统）。
+模块化后 `file://` 双击打开不再可用（浏览器对模块脚本有 CORS 限制），本地预览必须起静态服务（`npm run dev` 或 `python3 -m http.server`）。
 
 ## 外部 API 契约
 
@@ -73,9 +76,9 @@ Base：`https://www.cheapshark.com/api/1.0`。
 - 托管：Vercel，项目名 `steamcalc`（Vercel 项目名不允许大写字母，故不用目录名 `steamCalc`）。
 - 生产地址：https://steamcalc.vercel.app
 - 已关联 GitHub 仓库 `Jerryszz02/steamCalc`：push 到 main 会触发 Vercel 自动重新部署；预览/生产策略等未改动，保持 Vercel 默认。
-- 无构建配置：Vercel 直接托管仓库根目录静态文件，Output Directory 为 `.`。
-- 本地预览：`python3 -m http.server 8000` 或直接双击 `index.html`。
-- `.vercel` 目录（CLI 本地状态）已通过 `.gitignore` 排除，不要提交。
+- 无构建配置：Vercel 直接托管仓库根目录静态文件，Output Directory 为 `.`。仓库现有 `package.json`（Vitest 开发依赖），Vercel 会执行 `npm install` 但没有构建步骤，部署产物仍是静态文件。
+- 本地预览：`npm run dev` 或 `python3 -m http.server 8000`（ES Modules 下 `file://` 双击打开不可用）。
+- `.vercel`（CLI 本地状态）、`node_modules/`、`coverage/` 已通过 `.gitignore` 排除，不要提交。
 
 ## 安全与信任边界
 
@@ -87,26 +90,27 @@ Base：`https://www.cheapshark.com/api/1.0`。
 | 决策 | 理由 | 重新评估触发条件 |
 |---|---|---|
 | ITAD 为主、CheapShark 兜底 | ITAD 支持多区价格和 Steam 史低，但需 key；兜底保证零配置可用 | ITAD 免费层政策变化 |
-| 零依赖无构建 | 项目体量小，静态托管即可，降低维护成本 | 需要状态管理/路由等复杂能力时 |
+| 运行时零依赖无构建；测试引入 Vitest | 静态托管即可降低维护成本；史低判定分支多，值得自动化回归兜底 | 需要状态管理/路由等复杂能力时 |
 | 愿望单存 localStorage | 无账号体系，单设备场景足够 | 用户要求多设备同步 |
 
 ## 非目标
 
-- 不引入后端、数据库、构建工具、测试框架（是否引入测试见待确认）。
+- 不引入后端、数据库、构建工具（Vitest 仅作开发依赖，不影响运行时）。
 - 不做 Service Worker / 离线缓存。
 
 ## 实现指引
 
-- 改判定规则：只动 `app.js` 的 `computeVerdict`，注意史低为 0 的免费特例。
+- 改判定规则：只动 `logic.js` 的 `computeVerdict`，注意史低为 0 的免费特例；同步更新 `tests/logic.test.js` 对应用例，跑 `npm test` 验证。
 - 加新区域：改 `app.js` 的 `REGIONS` 数组；需确认 ITAD 支持该 country 代码。
-- 换/加数据源：在 `api.js` 仿照现有两个封装新增，错误统一抛 `ApiError`；`app.js` 的搜索/详情/愿望单三处都有 `source` 分支需要同步。
+- 换/加数据源：在 `api.js` 仿照现有两个封装新增，错误统一抛 `ApiError`；`app.js` 的搜索/详情/愿望单三处都有 `source` 分支需要同步；在 `tests/api.test.js` 用 mock fetch 补用例。
+- 新纯逻辑优先放 `logic.js` 或独立新模块并配测试；`app.js` 的 DOM 交互逻辑暂靠浏览器手工验证。
 - 改完 css/js：递增 `index.html` 的 `?v=N`。
 
 ## 验收指引
 
-按 `prd.md` 的验收标准手工验证 5 条场景；部署后访问 https://steamcalc.vercel.app 确认返回 200 且资源版本号为最新。
+先跑 `npm test`（纯逻辑与 API 封装的自动回归）；再按 `prd.md` 的验收标准在浏览器手工验证 5 条场景（DOM 交互部分）；部署后访问 https://steamcalc.vercel.app 确认返回 200 且资源版本号为最新。
 
 ## 待确认
 
-- 是否引入测试框架与最小测试集（当前改动只能靠手工验证）。
+- `app.js` 的 DOM 交互逻辑尚无自动化测试，是否补 jsdom 层面的 UI 测试待确认。
 - Vercel 与 GitHub 关联后的自动部署分支策略保持默认，未在仓库中找到证据确认团队是否有其他要求。

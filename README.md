@@ -32,12 +32,24 @@ key 只保存在你自己浏览器的 localStorage 里，不会上传到任何�
 
 ## 使用
 
-本地直接打开 `index.html`，或起一个静态服务：
+起一个静态服务即可（页面使用 ES Modules，不能直接双击打开 `index.html`）：
 
 ```bash
 python3 -m http.server 8000
+# 或：npm run dev
 # 浏览器打开 http://localhost:8000
 ```
+
+## 开发
+
+```bash
+npm install        # 安装开发依赖（Vitest）
+npm test           # 运行全部测试
+npm run test:watch # watch 模式，改代码自动重跑
+npm run coverage   # 生成覆盖率报告
+```
+
+测试用 Vitest（jsdom 环境），用例在 `tests/` 目录。纯逻辑（史低判定、API 封装）已有覆盖；`app.js` 的 DOM 交互逻辑暂未覆盖，改动后需在浏览器手工验证。
 
 ## 部署
 
@@ -57,7 +69,9 @@ python3 -m http.server 8000
 - `index.html` — 页面结构
 - `style.css` — Steam 风格深色主题
 - `api.js` — ITAD / CheapShark 接口封装
-- `app.js` — 搜索、史低判定、愿望单逻辑
+- `logic.js` — 史低判定等纯函数（不碰 DOM，可独立测试）
+- `app.js` — 入口模块：搜索、详情渲染、愿望单逻辑
+- `tests/` — Vitest 测试用例
 
 ## 说明
 
