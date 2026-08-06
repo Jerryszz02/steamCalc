@@ -25,13 +25,13 @@ async function itadFetch(path, key, options = {}) {
 }
 
 // 按标题搜索游戏，返回 [{id, title, type, ...}]
-async function itadSearch(title, key) {
+export async function itadSearch(title, key) {
   const path = `/games/search/v1?title=${encodeURIComponent(title)}&results=10`;
   return itadFetch(path, key);
 }
 
 // 批量查询 Steam 当前价 + 史低价，返回 [{id, historyLow, deals}]
-async function itadSteamPrices(ids, key, country) {
+export async function itadSteamPrices(ids, key, country) {
   // 注意：不能带 Content-Type: application/json 头。
   // ITAD 的预检响应不包含 access-control-allow-headers，浏览器会因
   // content-type 非安全头部而拦截请求（Failed to fetch，与 key 无关）。
@@ -59,24 +59,24 @@ async function csFetch(path) {
 }
 
 // 返回 [{gameID, external, thumb, cheapest}]
-async function csSearch(title) {
+export async function csSearch(title) {
   return csFetch(`/games?title=${encodeURIComponent(title)}&limit=10`);
 }
 
 // 返回 {info, cheapestPriceEver:{price,date}, deals:[{storeID, price, retailPrice, savings}]}
-async function csGameDetail(gameID) {
+export async function csGameDetail(gameID) {
   return csFetch(`/games?id=${encodeURIComponent(gameID)}`);
 }
 
 /* ===== 通用 ===== */
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(message, kind) {
     super(message);
     this.kind = kind;
   }
 }
 
-function formatPrice(amount, currency) {
+export function formatPrice(amount, currency) {
   try {
     return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(amount);
   } catch {
@@ -84,7 +84,7 @@ function formatPrice(amount, currency) {
   }
 }
 
-function formatDate(iso) {
+export function formatDate(iso) {
   if (!iso) return '未知';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '未知';
