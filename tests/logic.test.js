@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeVerdict, summarizeItad } from '../logic.js';
+import { computeVerdict, summarizeItad, formatWishlistPriceLine } from '../logic.js';
 
 describe('computeVerdict 史低判定', () => {
   it('输入缺任一侧价格时返回 null（不展示结论）', () => {
@@ -79,5 +79,29 @@ describe('summarizeItad 提取 ITAD 价格摘要', () => {
     const entry = structuredClone(baseEntry);
     delete entry.historyLow;
     expect(summarizeItad(entry).historyLowAll).toBeNull();
+  });
+});
+
+describe('formatWishlistPriceLine 愿望单行价格文案', () => {
+  it('有原价数据时展示现价 / 原价 / 史低', () => {
+    const line = formatWishlistPriceLine({ current: 30, regular: 50, low: 25, currency: 'CNY' });
+    expect(line).toContain('现价');
+    expect(line).toContain('30');
+    expect(line).toContain('原价');
+    expect(line).toContain('50');
+    expect(line).toContain('史低');
+    expect(line).toContain('25');
+  });
+
+  it('无原价数据（regular 为 null）时省略原价段', () => {
+    const line = formatWishlistPriceLine({ current: 30, regular: null, low: 25, currency: 'CNY' });
+    expect(line).not.toContain('原价');
+    expect(line).toContain('现价');
+  });
+
+  it('现价缺失显示「无数据」，史低缺失显示 —', () => {
+    const line = formatWishlistPriceLine({ current: null, regular: null, low: null, currency: 'CNY' });
+    expect(line).toContain('无数据');
+    expect(line).toContain('—');
   });
 });

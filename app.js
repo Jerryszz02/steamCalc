@@ -1,7 +1,7 @@
 import {
   itadSearch, itadSteamPrices, csSearch, csGameDetail, formatPrice, formatDate,
 } from './api.js';
-import { computeVerdict, summarizeItad } from './logic.js';
+import { computeVerdict, summarizeItad, formatWishlistPriceLine } from './logic.js';
 
 /* ===== 状态与存储 ===== */
 const LS_KEY = 'steamcalc_itad_key';
@@ -115,9 +115,12 @@ function renderItadDetail(box, title, entry) {
     ${s.verdict ? `<div><span class="verdict ${s.verdict.cls}">${esc(s.verdict.text)}</span></div>` : ''}
     <div class="price-grid">
       <div class="price-box">
+        <div class="label">原价</div>
+        <div class="value">${esc(formatPrice(s.regular, s.currency))}</div>
+      </div>
+      <div class="price-box">
         <div class="label">当前价${s.cut > 0 ? `<span class="cut-badge">-${s.cut}%</span>` : ''}</div>
         <div class="value">${esc(cur)}</div>
-        ${s.cut > 0 ? `<div class="extra">原价 <s>${esc(formatPrice(s.regular, s.currency))}</s></div>` : ''}
       </div>
       <div class="price-box">
         <div class="label">Steam 史低</div>
@@ -152,9 +155,12 @@ function renderCsDetail(box, detail) {
     ${verdict ? `<div><span class="verdict ${verdict.cls}">${esc(verdict.text)}</span></div>` : ''}
     <div class="price-grid">
       <div class="price-box">
+        <div class="label">原价</div>
+        <div class="value">${shown ? '$' + Number(shown.retailPrice).toFixed(2) : '无数据'}</div>
+      </div>
+      <div class="price-box">
         <div class="label">当前价${cut > 0 ? `<span class="cut-badge">-${cut}%</span>` : ''}</div>
         <div class="value">${current != null ? '$' + current.toFixed(2) : '无数据'}</div>
-        ${cut > 0 && shown ? `<div class="extra">原价 <s>$${Number(shown.retailPrice).toFixed(2)}</s></div>` : ''}
       </div>
       <div class="price-box">
         <div class="label">历史最低</div>
@@ -206,6 +212,7 @@ async function refreshWishlistPrices() {
       const low = detail.cheapestPriceEver ? Number(detail.cheapestPriceEver.price) : null;
       summaries[`cs:${w.id}`] = {
         current, currency: 'USD', low,
+        regular: shown ? Number(shown.retailPrice) : null,
         verdict: computeVerdict(current, low),
       };
     }
@@ -233,9 +240,7 @@ function renderWishlist(loading = false, error = null, summaries = {}) {
     if (loading) {
       info = '<span class="price-info">加载中…</span>';
     } else if (s) {
-      const cur = s.current != null ? formatPrice(s.current, s.currency) : '无数据';
-      const low = s.low != null ? formatPrice(s.low, s.currency) : '—';
-      info = `<span class="price-info">现价 ${esc(cur)} / 史低 ${esc(low)}</span>`;
+      info = `<span class="price-info">${esc(formatWishlistPriceLine(s))}</span>`;
       if (s.verdict) chip = `<span class="chip ${s.verdict.cls}">${esc(s.verdict.text)}</span>`;
     }
     return `<div class="wish-row">

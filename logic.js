@@ -1,3 +1,5 @@
+import { formatPrice } from './api.js';
+
 /* ===== 史低判定（纯函数，不碰 DOM 与网络，可独立测试）===== */
 export function computeVerdict(currentAmount, lowAmount) {
   if (currentAmount == null || lowAmount == null) return null;
@@ -36,4 +38,12 @@ export function summarizeItad(entry) {
     low, lowDate, historyLowAll,
     verdict: computeVerdict(current, low != null ? low : historyLowAll),
   };
+}
+
+// 愿望单行的价格文案：现价 / 原价（有数据时）/ 史低
+export function formatWishlistPriceLine(s) {
+  const cur = s.current != null ? formatPrice(s.current, s.currency) : '无数据';
+  const low = s.low != null ? formatPrice(s.low, s.currency) : '—';
+  const reg = s.regular != null ? formatPrice(s.regular, s.currency) : null;
+  return `现价 ${cur}${reg ? ` / 原价 ${reg}` : ''} / 史低 ${low}`;
 }
