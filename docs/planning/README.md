@@ -6,7 +6,7 @@
 
 本文档仅根据当前仓库可见内容整理；未在仓库中找到证据的内容均不做假设，一律标为 `待确认`。
 
-- 生成时间：2026-08-06
+- 生成时间：2026-08-06（同日随 ES Modules 化与 Vitest 测试体系引入更新）
 - 已检查的项目根目录：`/Users/jerryszz/Desktop/Projects/steamCalc`
 
 ## 已检查的关键项目证据
@@ -19,7 +19,9 @@
 | `app.js` | 史低判定规则、搜索/详情/愿望单逻辑、localStorage 三个 key 的 schema、8 个支持区域 |
 | `style.css` | Steam 风格深色主题，纯 CSS 无框架 |
 | Vercel 部署记录（2026-08-06 `vercel --prod` 输出） | 生产地址 https://steamcalc.vercel.app，项目名 `steamcalc`，已关联 GitHub 仓库 `Jerryszz02/steamCalc` |
-| `.gitignore` | 忽略 `.vercel` 本地状态目录 |
+| `.gitignore` | 忽略 `.vercel`、`node_modules/`、`coverage/` |
+| `package.json` / `vitest.config.js` / `tests/` | Vitest + jsdom 测试体系，`npm test` 可执行 |
+| `logic.js` | 从 `app.js` 抽出的纯函数模块（史低判定、ITAD 摘要），配合 ES Modules 化 |
 
 ## 已生成文档
 
@@ -38,13 +40,13 @@
 | `api-design.md` | 项目不对外提供 API，只消费第三方 API；外部 API 契约在 `technical-design.md` 中摘要 |
 | `database-design.md` | 无服务端持久化；localStorage 属于浏览器本地存储，schema 已并入 `technical-design.md` |
 | `security-privacy.md` | 唯一敏感点是 ITAD key 仅存 localStorage，已作为信任边界并入 `technical-design.md` |
-| `test-plan.md` | 仓库没有测试框架和任何测试；是否需要引入测试体系记为 `待确认` |
+| `test-plan.md` | 已引入 Vitest（`npm test` 可执行），验证方式在 `technical-design.md` 的验收指引中说明，暂不需要单独成篇 |
 | `release-plan.md` | 发布机制非常简单（push 到 main 触发 Vercel 自动部署），已在 `technical-design.md` 说明 |
 | `operations-runbook.md` | 纯静态站点，无运行时进程、日志或健康检查 |
 | `decision-log.md` | 关键决策数量少，已作为章节并入 `technical-design.md` |
 
 ## 待确认
 
-- 是否引入测试框架（当前仓库无任何测试，改逻辑只能靠手工验证）。
+- `app.js` 的 DOM 交互逻辑暂无自动化测试（Vitest 已就位，可后续补 jsdom 用例）。
 - ITAD 免费层限额「每 5 分钟 1000 次请求」来自根 `README.md`，未在仓库中找到 ITAD 官方文档引文，实际限额以官方为准。
 - 根 `README.md` 的 Roadmap / License / 贡献方式尚无证据，已保留章节并标 `待确认`。
