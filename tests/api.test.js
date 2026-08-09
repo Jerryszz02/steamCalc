@@ -46,6 +46,18 @@ describe('ITAD 接口', () => {
     expect(options.headers).toBeUndefined();
   });
 
+  it('itadSteamPrices 超过 200 个 id 时自动分批并合并结果（ITAD 单批上限 200）', async () => {
+    const ids = Array.from({ length: 201 }, (_, i) => `g${i}`);
+    fetch.mockImplementation(async (_url, options) =>
+      jsonResponse(JSON.parse(options.body).map((id) => ({ id }))));
+    const res = await itadSteamPrices(ids, 'mykey', 'CN');
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toHaveLength(200);
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual(['g200']);
+    expect(res).toHaveLength(201);
+    expect(res[200].id).toBe('g200');
+  });
+
   it('401/403 → auth 错误', async () => {
     fetch.mockResolvedValue(jsonResponse({}, { status: 403, ok: false }));
     await expect(itadSearch('x', 'badkey')).rejects.toMatchObject({ kind: 'auth' });

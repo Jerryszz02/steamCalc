@@ -37,14 +37,22 @@ export async function itadLookupAppid(appid, key) {
 
 // 批量查询 Steam 当前价 + 史低价，返回 [{id, historyLow, deals}]
 export async function itadSteamPrices(ids, key, country) {
-  // 注意：不能带 Content-Type: application/json 头。
-  // ITAD 的预检响应不包含 access-control-allow-headers，浏览器会因
-  // content-type 非安全头部而拦截请求（Failed to fetch，与 key 无关）。
-  // 不带该头时 fetch 默认 text/plain（安全头部，免预检），服务端实测照常解析 JSON body。
-  return itadFetch(`/games/prices/v3?country=${country}&shops=${STEAM_SHOP_ID}`, key, {
-    method: 'POST',
-    body: JSON.stringify(ids),
-  });
+  // prices/v3 单次最多接受 200 个 id（ITAD OpenAPI 的 body schema 上限），
+  // 愿望单超过 200 条时自动分批请求并合并结果
+  const BATCH = 200;
+  const results = [];
+  for (let i = 0; i < ids.length; i += BATCH) {
+    // 注意：不能带 Content-Type: application/json 头。
+    // ITAD 的预检响应不包含 access-control-allow-headers，浏览器会因
+    // content-type 非安全头部而拦截请求（Failed to fetch，与 key 无关）。
+    // 不带该头时 fetch 默认 text/plain（安全头部，免预检），服务端实测照常解析 JSON body。
+    const entries = await itadFetch(`/games/prices/v3?country=${country}&shops=${STEAM_SHOP_ID}`, key, {
+      method: 'POST',
+      body: JSON.stringify(ids.slice(i, i + BATCH)),
+    });
+    results.push(...entries);
+  }
+  return results;
 }
 
 /* ===== CheapShark API（兜底，无需 key，仅美元）===== */

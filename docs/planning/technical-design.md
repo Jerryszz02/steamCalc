@@ -42,7 +42,7 @@ Base：`https://api.isthereanydeal.com`，key 以 query 参数 `key=` 传递。
 | 用途 | 端点 | 说明 |
 |---|---|---|
 | 搜索 | `GET /games/search/v1?title=...&results=10` | 返回 `[{id, title, type}]` |
-| 查价 | `POST /games/prices/v3?country=XX&shops=61` | body 为游戏 id 的 JSON 数组；`shops=61` 即 Steam；返回 `[{id, historyLow, deals}]` |
+| 查价 | `POST /games/prices/v3?country=XX&shops=61` | body 为游戏 id 的 JSON 数组；`shops=61` 即 Steam；返回 `[{id, historyLow, deals}]`；单批上限 200 个 id，`itadSteamPrices` 超出时自动分批合并 |
 | appid 映射 | `GET /games/lookup/v1?appid=...` | 用 Steam appid 查 ITAD 游戏，返回 `{found, game:{id, title, ...}}`，导入愿望单时用 |
 
 错误分类（`itadFetch`）：401/403 → `auth`，429 → `rate`，其他非 2xx → `http`，fetch 抛异常 → `auth`（见下方 CORS 说明）。
