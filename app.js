@@ -1,12 +1,17 @@
 import {
-  itadSearch, itadSteamPrices, csSearch, csGameDetail, formatPrice, formatDate,
+  itadSearch, itadSteamPrices, itadLookupAppid, csSearch, csGameDetail,
+  steamWishlist, formatPrice, formatDate,
 } from './api.js';
-import { computeVerdict, summarizeItad, formatWishlistPriceLine } from './logic.js';
+import {
+  computeVerdict, summarizeItad, formatWishlistPriceLine, parseSteamInput,
+} from './logic.js';
 
 /* ===== 状态与存储 ===== */
 const LS_KEY = 'steamcalc_itad_key';
 const LS_COUNTRY = 'steamcalc_country';
 const LS_WISHLIST = 'steamcalc_wishlist';
+const LS_STEAM_ID = 'steamcalc_steam_id';
+const LS_STEAM_KEY = 'steamcalc_steam_key';
 
 const REGIONS = [
   ['CN', '国区 (CNY)'],
@@ -22,6 +27,9 @@ const REGIONS = [
 let apiKey = localStorage.getItem(LS_KEY) || '';
 let country = localStorage.getItem(LS_COUNTRY) || 'CN';
 let wishlist = JSON.parse(localStorage.getItem(LS_WISHLIST) || '[]');
+let steamId = localStorage.getItem(LS_STEAM_ID) || '';
+let steamKey = localStorage.getItem(LS_STEAM_KEY) || '';
+let importing = false;
 let lastResults = [];
 let currentGame = null; // {source, id, title}
 
@@ -254,6 +262,81 @@ function renderWishlist(loading = false, error = null, summaries = {}) {
   });
 }
 
+/* ===== Steam 愿望单导入 ===== */
+async function importSteamWishlist() {
+  const status = $('steam-import-status');
+  const input = $('steam-id-input').value.trim();
+  const sKey = $('steam-key-input').value.trim();
+  if (importing) return;
+  if (!apiKey) {
+    status.textContent = '请先在「API Key 设置」里填 ITAD key，导入时需要用它把 Steam 游戏映射到价格数据。';
+    return;
+  }
+  const parsed = parseSteamInput(input);
+  if (!parsed) {
+    status.textContent = 'Steam ID 格式不正确：支持 17 位数字 ID、steamcommunity.com/id/xxx 或 /profiles/xxx 链接。';
+    return;
+  }
+  if (!sKey) {
+    status.textContent = '请填写 Steam Web API key。';
+    return;
+  }
+  steamId = input;
+  steamKey = sKey;
+  localStorage.setItem(LS_STEAM_ID, steamId);
+  localStorage.setItem(LS_STEAM_KEY, steamKey);
+
+  importing = true;
+  try {
+    status.textContent = '正在读取 Steam 愿望单…';
+    const items = await steamWishlist(parsed.value, steamKey);
+    if (!items.length) {
+      status.textContent = '愿望单是空的，没有可导入的游戏。';
+      return;
+    }
+    let added = 0;
+    let existed = 0;
+    let missing = 0;
+    let failed = 0;
+    let done = 0;
+    const queue = [...items];
+    // 并发 5 个 worker 逐个查 ITAD 映射，单个失败不阻塞整体导入
+    const worker = async () => {
+      while (queue.length) {
+        const { appid } = queue.shift();
+        done += 1;
+        status.textContent = `正在匹配游戏信息 ${done}/${items.length}…`;
+        let r;
+        try {
+          r = await itadLookupAppid(appid, apiKey);
+        } catch {
+          failed += 1;
+          continue;
+        }
+        if (!r || !r.found || !r.game) {
+          missing += 1;
+          continue;
+        }
+        if (wishlist.some((w) => w.source === 'itad' && w.id === r.game.id)) {
+          existed += 1;
+        } else {
+          wishlist.push({ source: 'itad', id: r.game.id, title: r.game.title });
+          added += 1;
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: 5 }, worker));
+    saveWishlist();
+    status.textContent = `导入完成：新增 ${added} 个，已存在 ${existed} 个，ITAD 未收录 ${missing} 个`
+      + (failed ? `，匹配失败 ${failed} 个（可重新导入重试）` : '');
+    refreshWishlistPrices();
+  } catch (err) {
+    status.textContent = err && err.message ? err.message : '导入失败，请稍后再试';
+  } finally {
+    importing = false;
+  }
+}
+
 /* ===== 设置与初始化 ===== */
 function showError(box, err) {
   const msg = err && err.message ? err.message : '请求失败，请稍后再试';
@@ -318,6 +401,22 @@ function init() {
   });
   $('clear-key-btn').addEventListener('click', () => {
     $('api-key-input').value = '';
+  });
+
+  const steamDialog = $('steam-dialog');
+  $('import-steam-btn').addEventListener('click', () => {
+    $('steam-id-input').value = steamId;
+    $('steam-key-input').value = steamKey;
+    $('steam-import-status').textContent = '';
+    steamDialog.showModal();
+  });
+  $('steam-form').addEventListener('submit', (e) => {
+    // 导入期间保持弹层打开以展示进度，故阻止 method="dialog" 的默认关闭行为
+    e.preventDefault();
+    importSteamWishlist();
+  });
+  $('steam-close-btn').addEventListener('click', () => {
+    steamDialog.close();
   });
 
   updateSourceHint();

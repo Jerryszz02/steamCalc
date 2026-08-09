@@ -30,6 +30,11 @@ export async function itadSearch(title, key) {
   return itadFetch(path, key);
 }
 
+// 用 Steam appid 查 ITAD 游戏，返回 {found, game: {id, title, ...}}
+export async function itadLookupAppid(appid, key) {
+  return itadFetch(`/games/lookup/v1?appid=${encodeURIComponent(appid)}`, key);
+}
+
 // 批量查询 Steam 当前价 + 史低价，返回 [{id, historyLow, deals}]
 export async function itadSteamPrices(ids, key, country) {
   // 注意：不能带 Content-Type: application/json 头。
@@ -66,6 +71,30 @@ export async function csSearch(title) {
 // 返回 {info, cheapestPriceEver:{price,date}, deals:[{storeID, price, retailPrice, savings}]}
 export async function csGameDetail(gameID) {
   return csFetch(`/games?id=${encodeURIComponent(gameID)}`);
+}
+
+/* ===== Steam 愿望单导入（经 /api/steam-wishlist 中转，Steam 接口无 CORS 头）===== */
+export async function steamWishlist(input, steamKey) {
+  let res;
+  try {
+    res = await fetch(`/api/steam-wishlist?input=${encodeURIComponent(input)}&key=${encodeURIComponent(steamKey)}`);
+  } catch {
+    throw new ApiError('无法连接 Steam 导入服务，请检查网络', 'network');
+  }
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    // 非 JSON 响应：静态服务器（如 python http.server）会把函数当静态文件返回
+  }
+  if (!res.ok) {
+    const msg = data && data.error ? data.error : `Steam 导入失败（HTTP ${res.status}）`;
+    throw new ApiError(msg, res.status === 403 ? 'auth' : 'http');
+  }
+  if (!data || !Array.isArray(data.items)) {
+    throw new ApiError('当前环境没有可用的 Steam 导入服务：本地开发请用 npx vercel dev 启动，或使用线上版本导入', 'unsupported');
+  }
+  return data.items;
 }
 
 /* ===== 通用 ===== */

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Steam 史低计算器</title>
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <header class="topbar">
@@ -34,7 +34,10 @@
     <section class="wishlist-section">
       <div class="wishlist-header">
         <h2>本地愿望单</h2>
-        <button id="refresh-wishlist" class="btn btn-ghost" type="button">刷新价格</button>
+        <div class="wishlist-actions">
+          <button id="import-steam-btn" class="btn btn-ghost" type="button">导入 Steam 愿望单</button>
+          <button id="refresh-wishlist" class="btn btn-ghost" type="button">刷新价格</button>
+        </div>
       </div>
       <div id="wishlist"></div>
     </section>
@@ -56,6 +59,26 @@
     </form>
   </dialog>
 
+  <dialog id="steam-dialog">
+    <form method="dialog" id="steam-form">
+      <h3>导入 Steam 愿望单</h3>
+      <p class="hint">
+        填入你的 Steam ID（17 位数字，或 steamcommunity.com/id/xxx、/profiles/xxx 链接）
+        和 Steam Web API key（在
+        <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noopener">steamcommunity.com/dev/apikey</a>
+        免费申请）。愿望单需在 Steam 隐私设置中设为公开。
+        这些信息只保存在你的浏览器 localStorage 中。
+      </p>
+      <input id="steam-id-input" type="text" placeholder="Steam ID 或个人资料链接" autocomplete="off">
+      <input id="steam-key-input" type="text" placeholder="Steam Web API key" autocomplete="off">
+      <p id="steam-import-status" class="hint"></p>
+      <div class="dialog-actions">
+        <button id="steam-close-btn" class="btn btn-ghost" type="button">关闭</button>
+        <button class="btn btn-primary" value="ok">开始导入</button>
+      </div>
+    </form>
+  </dialog>
+
   <footer>
     <p>
       价格数据来自 <a href="https://isthereanydeal.com" target="_blank" rel="noopener">IsThereAnyDeal</a>
@@ -63,6 +86,6 @@
     </p>
   </footer>
 
-  <script type="module" src="app.js?v=3"></script>
+  <script type="module" src="app.js?v=4"></script>
 </body>
 </html>
