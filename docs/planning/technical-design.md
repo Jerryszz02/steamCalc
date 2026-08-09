@@ -49,7 +49,9 @@ Base：`https://api.isthereanydeal.com`，key 以 query 参数 `key=` 传递。
 
 ### Steam Web API（仅愿望单导入，需 key，经 serverless 中转）
 
-Base：`https://api.steampowered.com`，key 以 query 参数 `key=` 传递。**该域名无 CORS 头，浏览器无法直连**，且 Steam 已于 2024-11 关闭免 key 的 `store.steampowered.com/wishlist/.../wishlistdata/` 接口（实测 302 跳转首页），所以由 `api/steam-wishlist.js` 服务端代调：
+Base：`https://api.steampowered.com`（上游 Steam 接口的 key 以 query 参数 `key=` 传递，属服务端到服务端调用）。**该域名无 CORS 头，浏览器无法直连**，且 Steam 已于 2024-11 关闭免 key 的 `store.steampowered.com/wishlist/.../wishlistdata/` 接口（实测 302 跳转首页），所以由 `api/steam-wishlist.js` 服务端代调。
+
+前端与中转函数的契约：`POST /api/steam-wishlist`，JSON body `{input, key}`。**key 必须放 body 而非 query**——query 里的完整 URL 会被 Vercel/CDN 访问日志记录。
 
 | 用途 | 端点 | 说明 |
 |---|---|---|

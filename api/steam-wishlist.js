@@ -1,7 +1,8 @@
 /* ===== Steam 愿望单中转（Vercel serverless 函数）=====
  * api.steampowered.com 不返回 CORS 头，浏览器无法直连，
  * 所以由服务端代调 IWishlistService/GetWishlist。
- * key 由用户提供、随查询参数传入，服务端不存储。
+ * key 由用户提供、随 POST body 传入（不放 query，避免完整 URL
+ * 被 CDN/访问日志记录），服务端即用即弃、不存储。
  */
 import { extractWishlistItems } from '../logic.js';
 
@@ -28,9 +29,19 @@ async function resolveVanity(vanity, key) {
 }
 
 export default async function handler(req, res) {
-  const url = new URL(req.url, 'http://localhost');
-  const input = (url.searchParams.get('input') || '').trim();
-  const key = (url.searchParams.get('key') || '').trim();
+  if (req.method !== 'POST') {
+    return json(res, 405, { error: '仅支持 POST 请求' });
+  }
+  let body = req.body;
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      body = null;
+    }
+  }
+  const input = (body && body.input ? String(body.input) : '').trim();
+  const key = (body && body.key ? String(body.key) : '').trim();
 
   // Steam Web API key 固定为 32 位十六进制
   if (!/^[0-9a-f]{32}$/i.test(key)) {

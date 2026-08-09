@@ -77,7 +77,13 @@ export async function csGameDetail(gameID) {
 export async function steamWishlist(input, steamKey) {
   let res;
   try {
-    res = await fetch(`/api/steam-wishlist?input=${encodeURIComponent(input)}&key=${encodeURIComponent(steamKey)}`);
+    // 同源调用自有函数，可以用 application/json（ITAD 的 CORS 限制不适用于此）；
+    // key 放 POST body 而非 query，避免完整 URL 被 CDN/访问日志记录
+    res = await fetch('/api/steam-wishlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input, key: steamKey }),
+    });
   } catch {
     throw new ApiError('无法连接 Steam 导入服务，请检查网络', 'network');
   }

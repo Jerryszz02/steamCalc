@@ -78,13 +78,17 @@ describe('ITAD 接口', () => {
 });
 
 describe('Steam 愿望单导入接口', () => {
-  it('steamWishlist 请求同源 /api/steam-wishlist 并编码参数', async () => {
+  it('steamWishlist 以 POST 请求同源 /api/steam-wishlist，input/key 放 body（不进 URL 日志）', async () => {
     fetch.mockResolvedValue(jsonResponse({ items: [{ appid: 413150, added: 1700000000 }] }));
     const items = await steamWishlist('76561199441847079', 'AB'.repeat(16));
-    const url = fetch.mock.calls[0][0];
-    expect(url).toContain('/api/steam-wishlist');
-    expect(url).toContain('input=76561199441847079');
-    expect(url).toContain(`key=${'AB'.repeat(16)}`);
+    const [url, options] = fetch.mock.calls[0];
+    expect(url).toBe('/api/steam-wishlist');
+    expect(url).not.toContain('key');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({
+      input: '76561199441847079',
+      key: 'AB'.repeat(16),
+    });
     expect(items).toEqual([{ appid: 413150, added: 1700000000 }]);
   });
 
