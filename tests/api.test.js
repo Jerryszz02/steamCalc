@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  itadSearch, itadSteamPrices, csSearch, csGameDetail, ApiError, formatPrice, formatDate,
+  itadSearch, itadSteamPrices, itadLookupAppid, csSearch, csGameDetail,
+  steamWishlist, ApiError, formatPrice, formatDate,
 } from '../api.js';
 
 function jsonResponse(data, { status = 200, ok = true } = {}) {
@@ -63,6 +64,57 @@ describe('ITAD 接口', () => {
   it('fetch 抛异常 → auth 错误（ITAD 4xx 不带 CORS 头，浏览器会掩盖成 Failed to fetch）', async () => {
     fetch.mockRejectedValue(new TypeError('Failed to fetch'));
     await expect(itadSearch('x', 'k')).rejects.toMatchObject({ kind: 'auth' });
+  });
+
+  it('itadLookupAppid 拼接 lookup URL：带 appid 与 key', async () => {
+    fetch.mockResolvedValue(jsonResponse({ found: true, game: { id: 'g1', title: 'Stardew Valley' } }));
+    const res = await itadLookupAppid(413150, 'mykey');
+    const url = fetch.mock.calls[0][0];
+    expect(url).toContain('https://api.isthereanydeal.com/games/lookup/v1');
+    expect(url).toContain('appid=413150');
+    expect(url).toContain('key=mykey');
+    expect(res.game.title).toBe('Stardew Valley');
+  });
+});
+
+describe('Steam 愿望单导入接口', () => {
+  it('steamWishlist 以 POST 请求同源 /api/steam-wishlist，input/key 放 body（不进 URL 日志）', async () => {
+    fetch.mockResolvedValue(jsonResponse({ items: [{ appid: 413150, added: 1700000000 }] }));
+    const items = await steamWishlist('76561199441847079', 'AB'.repeat(16));
+    const [url, options] = fetch.mock.calls[0];
+    expect(url).toBe('/api/steam-wishlist');
+    expect(url).not.toContain('key');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({
+      input: '76561199441847079',
+      key: 'AB'.repeat(16),
+    });
+    expect(items).toEqual([{ appid: 413150, added: 1700000000 }]);
+  });
+
+  it('403 → auth 错误，透传服务端 error 文案', async () => {
+    fetch.mockResolvedValue(
+      jsonResponse({ error: 'Steam API key 无效或已过期' }, { status: 403, ok: false }),
+    );
+    await expect(steamWishlist('x', 'k'))
+      .rejects.toMatchObject({ kind: 'auth', message: 'Steam API key 无效或已过期' });
+  });
+
+  it('其他非 2xx → http 错误', async () => {
+    fetch.mockResolvedValue(jsonResponse({ error: 'bad' }, { status: 502, ok: false }));
+    await expect(steamWishlist('x', 'k')).rejects.toMatchObject({ kind: 'http', message: 'bad' });
+  });
+
+  it('200 但非 JSON（静态服务器把函数当静态文件返回）→ unsupported 错误', async () => {
+    fetch.mockResolvedValue({
+      status: 200, ok: true, json: async () => { throw new Error('not json'); },
+    });
+    await expect(steamWishlist('x', 'k')).rejects.toMatchObject({ kind: 'unsupported' });
+  });
+
+  it('网络失败 → network 错误', async () => {
+    fetch.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(steamWishlist('x', 'k')).rejects.toMatchObject({ kind: 'network' });
   });
 });
 

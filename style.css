@@ -214,6 +214,11 @@ main {
 
 .wishlist-header h2 { font-size: 18px; color: #fff; }
 
+.wishlist-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .wish-row {
   display: flex;
   align-items: center;
