@@ -299,17 +299,24 @@ async function importSteamWishlist() {
     let missing = 0;
     let failed = 0;
     let done = 0;
+    let aborted = false;
     const queue = [...items];
     // 并发 5 个 worker 逐个查 ITAD 映射，单个失败不阻塞整体导入
     const worker = async () => {
-      while (queue.length) {
+      while (queue.length && !aborted) {
         const { appid } = queue.shift();
         done += 1;
         status.textContent = `正在匹配游戏信息 ${done}/${items.length}…`;
         let r;
         try {
           r = await itadLookupAppid(appid, apiKey);
-        } catch {
+        } catch (err) {
+          // key 无效（auth）或限流（rate）是共享性错误：剩余请求注定同样失败，
+          // 置中断标记让所有 worker 收工，避免白白打几百个请求还报误导性的「匹配失败」
+          if (err && (err.kind === 'auth' || err.kind === 'rate')) {
+            aborted = true;
+            throw err;
+          }
           failed += 1;
           continue;
         }
@@ -325,7 +332,17 @@ async function importSteamWishlist() {
         }
       }
     };
-    await Promise.all(Array.from({ length: 5 }, worker));
+    // allSettled 等所有 worker 收工后再统一处理，避免中断时仍有在途请求造成状态不一致
+    const settled = await Promise.allSettled(Array.from({ length: 5 }, worker));
+    const sharedErr = settled.find((s) => s.status === 'rejected');
+    if (sharedErr) {
+      if (added > 0) {
+        saveWishlist();
+        refreshWishlistPrices();
+        sharedErr.reason.message += `（已保留本次成功导入的 ${added} 个，修复问题后重新导入即可跳过它们）`;
+      }
+      throw sharedErr.reason;
+    }
     saveWishlist();
     status.textContent = `导入完成：新增 ${added} 个，已存在 ${existed} 个，ITAD 未收录 ${missing} 个`
       + (failed ? `，匹配失败 ${failed} 个（可重新导入重试）` : '');
