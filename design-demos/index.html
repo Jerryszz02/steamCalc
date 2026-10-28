@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SteamCalc 的三组界面设计方向：深海极光、价格档案与收藏卡匣。">
+  <title>SteamCalc · UI 设计对比</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="aurora.css">
+  <link rel="stylesheet" href="ledger.css">
+  <link rel="stylesheet" href="cartridge.css">
+</head>
+<body class="theme-aurora" data-theme="aurora">
+  <a class="skip-link" href="#demo-root">跳到演示内容</a>
+  <header class="demo-switcher">
+    <div class="switcher-heading">
+      <a class="switcher-brand" href="../index.html" aria-label="返回 SteamCalc 原版">
+        <span class="switcher-mark" aria-hidden="true">S</span>
+        <span>STEAMCALC <b>/ UI LAB</b></span>
+      </a>
+      <span class="switcher-note">交互原型 · 示例价格</span>
+    </div>
+    <nav class="theme-tabs" aria-label="选择界面设计方向">
+      <button type="button" data-theme-target="aurora" aria-pressed="true">
+        <span>深海极光</span><small>沉浸暗色</small>
+      </button>
+      <button type="button" data-theme-target="ledger" aria-pressed="false">
+        <span>价格档案</span><small>理性数据</small>
+      </button>
+      <button type="button" data-theme-target="cartridge" aria-pressed="false">
+        <span>收藏卡匣</span><small>复古趣味</small>
+      </button>
+    </nav>
+    <a class="back-to-app" href="../index.html">返回原版 <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main id="demo-root" tabindex="-1"></main>
+  <div id="demo-toast" class="demo-toast" role="status" aria-live="polite"></div>
+
+  <dialog id="settings-dialog" class="demo-dialog" aria-labelledby="settings-title">
+    <form method="dialog" id="settings-form">
+      <div class="dialog-heading">
+        <div>
+          <p class="dialog-kicker">DATA SOURCE</p>
+          <h2 id="settings-title">连接价格数据</h2>
+        </div>
+        <button class="dialog-close" type="button" data-close-dialog aria-label="关闭设置">×</button>
+      </div>
+      <p>正式版使用 IsThereAnyDeal API Key 查询多区价格。Key 仅保存在你的浏览器中。</p>
+      <label for="api-key-input">IsThereAnyDeal API Key</label>
+      <input id="api-key-input" type="text" placeholder="粘贴 API Key" autocomplete="off">
+      <p class="dialog-note">这是 UI 演示，输入内容不会保存或发送。</p>
+      <div class="dialog-actions">
+        <button class="dialog-secondary" type="button" id="clear-key-btn">清除</button>
+        <button class="dialog-primary" value="save">保存设置</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="steam-dialog" class="demo-dialog" aria-labelledby="steam-title">
+    <form method="dialog" id="steam-form">
+      <div class="dialog-heading">
+        <div>
+          <p class="dialog-kicker">STEAM WISHLIST</p>
+          <h2 id="steam-title">导入 Steam 愿望单</h2>
+        </div>
+        <button class="dialog-close" type="button" data-close-dialog aria-label="关闭导入窗口">×</button>
+      </div>
+      <p>填入公开的 Steam 个人资料和 Web API Key。正式版会将公开愿望单批量加入价格跟踪。</p>
+      <label for="steam-id-input">Steam ID 或个人资料链接</label>
+      <input id="steam-id-input" type="text" placeholder="steamcommunity.com/id/…" autocomplete="off" required>
+      <label for="steam-key-input">Steam Web API Key</label>
+      <input id="steam-key-input" type="text" placeholder="粘贴 Steam Web API Key" autocomplete="off" required>
+      <p class="dialog-note">演示提交会加入一款示例游戏，不会保存或发送输入内容。</p>
+      <div class="dialog-actions">
+        <button class="dialog-secondary" type="button" data-close-dialog>取消</button>
+        <button class="dialog-primary" value="import">开始导入</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="demo.js"></script>
+</body>
+</html>
