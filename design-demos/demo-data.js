@@ -1,19 +1,6 @@
 export const THEMES = {
-  aurora: {
-    name: '深海极光',
-    label: 'AURORA',
-    description: '沉浸暗色 · 封面驱动',
-  },
-  ledger: {
-    name: '价格档案',
-    label: 'LEDGER',
-    description: '明亮理性 · 数据优先',
-  },
-  cartridge: {
-    name: '收藏卡匣',
-    label: 'CARTRIDGE',
-    description: '复古趣味 · 收藏体验',
-  },
+  focus: { name: '查价优先' },
+  split: { name: '愿望单优先' },
 };
 
 export const REGIONS = {
