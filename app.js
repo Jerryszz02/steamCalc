@@ -1,10 +1,10 @@
 import {
   itadSearch, itadSteamPrices, itadLookupAppid, csSearch, csGameDetail,
-  steamWishlist, formatPrice, formatDate,
+  steamWishlist, formatPrice,
 } from './api.js';
 import {
-  computeVerdict, summarizeItad, formatWishlistPriceLine, parseSteamInput,
-} from './logic.js';
+  computeVerdict, summarizeItad, getVerdictShort, parseSteamInput,
+} from './logic.js?v=5';
 
 /* ===== 状态与存储 ===== */
 const LS_KEY = 'steamcalc_itad_key';
@@ -65,20 +65,15 @@ async function doSearch(title) {
 function renderResults() {
   const box = $('search-results');
   if (!lastResults.length) {
-    box.innerHTML = '<div class="loading">没有找到相关游戏</div>';
+    box.innerHTML = '<div class="loading">没有找到相关游戏，换个名称试试。</div>';
     return;
   }
   box.innerHTML = lastResults.map((r, i) => {
-    if (r.source === 'itad') {
-      return `<button class="result-row" data-idx="${i}" type="button">
-        <span>${esc(r.data.title)}</span>
-        <span class="type-tag">${esc(r.data.type || 'game')}</span>
-      </button>`;
-    }
-    const img = r.data.thumb ? `<img src="${esc(r.data.thumb)}" alt="">` : '';
+    const title = r.source === 'itad' ? r.data.title : r.data.external;
+    const priceText = r.source === 'cs' ? `$${r.data.cheapest}` : '';
     return `<button class="result-row" data-idx="${i}" type="button">
-      ${img}<span>${esc(r.data.external)}</span>
-      <span class="type-tag">$${esc(r.data.cheapest)}</span>
+      <span class="result-title">${esc(title)}</span>
+      ${priceText ? `<span class="result-price">${esc(priceText)}</span>` : ''}
     </button>`;
   }).join('');
   box.querySelectorAll('.result-row').forEach((btn) => {
@@ -87,9 +82,10 @@ function renderResults() {
 }
 
 /* ===== 详情 ===== */
-async function showDetail(idx) {
-  const r = lastResults[idx];
+async function loadDetail(r) {
+  if (!r) return;
   const box = $('detail');
+  $('search-results').classList.add('hidden');
   box.classList.remove('hidden');
   box.innerHTML = '<div class="loading">加载价格中…</div>';
   try {
@@ -102,46 +98,59 @@ async function showDetail(idx) {
       currentGame = { source: 'cs', id: r.data.gameID, title: detail.info.title };
       renderCsDetail(box, detail);
     }
+    if (window.innerWidth <= 800) box.scrollIntoView({ block: 'start' });
   } catch (err) {
     showError(box, err);
   }
 }
 
+function showDetail(idx) {
+  loadDetail(lastResults[idx]);
+}
+
+function showWishlistDetail(source, id) {
+  const item = wishlist.find((w) => w.source === source && w.id === id);
+  if (!item) return;
+  loadDetail(item.source === 'itad'
+    ? { source: 'itad', data: { id: item.id, title: item.title } }
+    : { source: 'cs', data: { gameID: item.id } });
+}
+
+function addWishButtonHtml() {
+  const added = currentGame && wishlist.some((w) => w.source === currentGame.source && w.id === currentGame.id);
+  return `<button id="add-wish-btn" class="add-wishlist" type="button" ${added ? 'disabled' : ''}>${added ? '已加入愿望单' : '加入愿望单'}</button>`;
+}
+
+function syncAddButton() {
+  const button = $('add-wish-btn');
+  if (!button || !currentGame) return;
+  const added = wishlist.some((w) => w.source === currentGame.source && w.id === currentGame.id);
+  button.disabled = added;
+  button.textContent = added ? '已加入愿望单' : '加入愿望单';
+}
+
 function renderItadDetail(box, title, entry) {
   const s = entry && summarizeItad(entry);
   if (!s) {
-    box.innerHTML = `<div class="card"><h2>${esc(title)}</h2>
-      <p class="empty-note">该游戏在当前区域（${esc(country)}）的 Steam 暂无价格数据。</p></div>`;
+    box.innerHTML = `<div class="price-panel"><h2 class="game-title">${esc(title)}</h2>
+      <p class="empty-note">当前区域暂无 Steam 价格。</p></div>`;
     return;
   }
   const cur = formatPrice(s.current, s.currency);
   const lowText = s.low != null ? formatPrice(s.low, s.currency) : '无数据';
   const hlAll = s.historyLowAll != null ? formatPrice(s.historyLowAll, s.currency) : '无数据';
-  box.innerHTML = `<div class="card">
-    <h2>${esc(title)}</h2>
-    <div class="sub">区域：${esc(country)} · 商店：Steam · 数据：IsThereAnyDeal</div>
-    ${s.verdict ? `<div><span class="verdict ${s.verdict.cls}">${esc(s.verdict.text)}</span></div>` : ''}
-    <div class="price-grid">
-      <div class="price-box">
-        <div class="label">原价</div>
-        <div class="value">${esc(formatPrice(s.regular, s.currency))}</div>
-      </div>
-      <div class="price-box">
-        <div class="label">当前价${s.cut > 0 ? `<span class="cut-badge">-${s.cut}%</span>` : ''}</div>
-        <div class="value">${esc(cur)}</div>
-      </div>
-      <div class="price-box">
-        <div class="label">Steam 史低</div>
-        <div class="value">${esc(lowText)}</div>
-        <div class="extra">${esc(formatDate(s.lowDate))}</div>
-      </div>
-      <div class="price-box">
-        <div class="label">全商店史低</div>
-        <div class="value">${esc(hlAll)}</div>
-        <div class="extra">含第三方商店</div>
-      </div>
+  box.innerHTML = `<div class="price-panel">
+    <h2 class="game-title">${esc(title)}</h2>
+    ${s.verdict ? `<p class="price-verdict ${s.verdict.cls}">${esc(s.verdict.text)}</p>` : ''}
+    <div class="current-price-row">
+      <div><span class="current-label">当前价</span><strong class="current-price">${esc(cur)}</strong></div>
+      <p class="regular-price">原价 <s>${esc(formatPrice(s.regular, s.currency))}</s> · 优惠 ${s.cut}%</p>
     </div>
-    <button id="add-wish-btn" class="btn btn-primary" type="button">加入愿望单</button>
+    <dl class="price-comparison">
+      <div><dt>Steam 史低</dt><dd>${esc(lowText)}</dd></div>
+      <div><dt>全商店史低</dt><dd>${esc(hlAll)}</dd></div>
+    </dl>
+    ${addWishButtonHtml()}
   </div>`;
   $('add-wish-btn').addEventListener('click', addCurrentToWishlist);
 }
@@ -154,29 +163,18 @@ function renderCsDetail(box, detail) {
   const current = shown ? Number(shown.price) : null;
   const cut = shown ? Math.round(Number(shown.savings)) : 0;
   const low = detail.cheapestPriceEver ? Number(detail.cheapestPriceEver.price) : null;
-  const lowDate = detail.cheapestPriceEver
-    ? new Date(detail.cheapestPriceEver.date * 1000).toISOString() : null;
   const verdict = computeVerdict(current, low);
-  box.innerHTML = `<div class="card">
-    <h2>${esc(detail.info.title)}</h2>
-    <div class="sub">数据：CheapShark（仅美元）· ${steamDeal ? 'Steam 价格' : '全网最低价（非 Steam）'}</div>
-    ${verdict ? `<div><span class="verdict ${verdict.cls}">${esc(verdict.text)}</span></div>` : ''}
-    <div class="price-grid">
-      <div class="price-box">
-        <div class="label">原价</div>
-        <div class="value">${shown ? '$' + Number(shown.retailPrice).toFixed(2) : '无数据'}</div>
-      </div>
-      <div class="price-box">
-        <div class="label">当前价${cut > 0 ? `<span class="cut-badge">-${cut}%</span>` : ''}</div>
-        <div class="value">${current != null ? '$' + current.toFixed(2) : '无数据'}</div>
-      </div>
-      <div class="price-box">
-        <div class="label">历史最低</div>
-        <div class="value">${low != null ? '$' + low.toFixed(2) : '无数据'}</div>
-        <div class="extra">${esc(formatDate(lowDate))}</div>
-      </div>
+  box.innerHTML = `<div class="price-panel">
+    <h2 class="game-title">${esc(detail.info.title)}</h2>
+    ${verdict ? `<p class="price-verdict ${verdict.cls}">${esc(verdict.text)}</p>` : ''}
+    <div class="current-price-row">
+      <div><span class="current-label">当前价</span><strong class="current-price">${current != null ? esc(formatPrice(current, 'USD')) : '无数据'}</strong></div>
+      <p class="regular-price">原价 <s>${shown ? esc(formatPrice(Number(shown.retailPrice), 'USD')) : '无数据'}</s> · 优惠 ${cut}%</p>
     </div>
-    <button id="add-wish-btn" class="btn btn-primary" type="button">加入愿望单</button>
+    <dl class="price-comparison">
+      <div><dt>历史最低</dt><dd>${low != null ? esc(formatPrice(low, 'USD')) : '无数据'}</dd></div>
+    </dl>
+    ${addWishButtonHtml()}
   </div>`;
   $('add-wish-btn').addEventListener('click', addCurrentToWishlist);
 }
@@ -190,6 +188,7 @@ function addCurrentToWishlist() {
   }
   wishlist.push({ ...currentGame });
   saveWishlist();
+  syncAddButton();
   refreshWishlistPrices();
 }
 
@@ -197,9 +196,13 @@ function removeFromWishlist(source, id) {
   wishlist = wishlist.filter((w) => !(w.source === source && w.id === id));
   saveWishlist();
   renderWishlist();
+  syncAddButton();
 }
 
 async function refreshWishlistPrices() {
+  const refreshButton = $('refresh-wishlist');
+  refreshButton.disabled = true;
+  refreshButton.textContent = '刷新中…';
   renderWishlist(true);
   const summaries = {};
   try {
@@ -227,6 +230,9 @@ async function refreshWishlistPrices() {
   } catch (err) {
     renderWishlist(false, err);
     return;
+  } finally {
+    refreshButton.disabled = false;
+    refreshButton.textContent = '刷新价格';
   }
   renderWishlist(false, null, summaries);
 }
@@ -234,7 +240,7 @@ async function refreshWishlistPrices() {
 function renderWishlist(loading = false, error = null, summaries = {}) {
   const box = $('wishlist');
   if (!wishlist.length) {
-    box.innerHTML = '<p class="empty-note">愿望单是空的。搜索游戏后点「加入愿望单」即可跟踪史低。</p>';
+    box.innerHTML = '<p class="empty-note">还没有游戏。搜索后加入愿望单。</p>';
     return;
   }
   if (error) {
@@ -243,20 +249,27 @@ function renderWishlist(loading = false, error = null, summaries = {}) {
   }
   box.innerHTML = wishlist.map((w) => {
     const s = summaries[`${w.source}:${w.id}`];
-    let info = '<span class="price-info">—</span>';
-    let chip = '';
+    let current = '—';
+    let low = '—';
+    let verdict = '';
     if (loading) {
-      info = '<span class="price-info">加载中…</span>';
+      current = '…';
+      low = '…';
     } else if (s) {
-      info = `<span class="price-info">${esc(formatWishlistPriceLine(s))}</span>`;
-      if (s.verdict) chip = `<span class="chip ${s.verdict.cls}">${esc(s.verdict.text)}</span>`;
+      current = s.current != null ? formatPrice(s.current, s.currency) : '无数据';
+      low = s.low != null ? formatPrice(s.low, s.currency) : '—';
+      verdict = getVerdictShort(s.verdict);
     }
     return `<div class="wish-row">
-      <span class="title">${esc(w.title)}</span>
-      ${chip}${info}
-      <button class="remove-btn" data-source="${w.source}" data-id="${esc(w.id)}" title="移除">✕</button>
+      <button class="wishlist-game" type="button" data-source="${esc(w.source)}" data-id="${esc(w.id)}">${esc(w.title)}</button>
+      <span class="wishlist-verdict ${s && s.verdict ? s.verdict.cls : ''}">${esc(verdict)}</span>
+      <button class="remove-btn" type="button" data-source="${esc(w.source)}" data-id="${esc(w.id)}" aria-label="从愿望单移除 ${esc(w.title)}">移除</button>
+      <div class="wishlist-prices"><span>现价<strong>${esc(current)}</strong></span><span>史低<strong>${esc(low)}</strong></span></div>
     </div>`;
   }).join('');
+  box.querySelectorAll('.wishlist-game').forEach((btn) => {
+    btn.addEventListener('click', () => showWishlistDetail(btn.dataset.source, btn.dataset.id));
+  });
   box.querySelectorAll('.remove-btn').forEach((btn) => {
     btn.addEventListener('click', () => removeFromWishlist(btn.dataset.source, btn.dataset.id));
   });
@@ -365,10 +378,10 @@ function updateSourceHint() {
   const hint = $('source-hint');
   const regionSelect = $('region-select');
   if (apiKey) {
-    hint.textContent = '数据源：IsThereAnyDeal · 支持多区价格与 Steam 史低';
+    hint.textContent = 'IsThereAnyDeal · 支持多区价格与 Steam 史低';
     regionSelect.disabled = false;
   } else {
-    hint.textContent = '数据源：CheapShark（仅美元）。设置 ITAD API key 可查国区等多区价格。';
+    hint.textContent = '当前使用 CheapShark，仅显示美元价格。';
     regionSelect.disabled = true;
     regionSelect.value = 'US';
   }
@@ -403,6 +416,9 @@ function init() {
     $('api-key-input').value = apiKey;
     dialog.showModal();
   });
+  $('settings-close-btn').addEventListener('click', () => {
+    dialog.close();
+  });
   $('settings-form').addEventListener('submit', () => {
     apiKey = $('api-key-input').value.trim();
     if (apiKey) {
@@ -434,6 +450,13 @@ function init() {
   });
   $('steam-close-btn').addEventListener('click', () => {
     steamDialog.close();
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.search-area')) $('search-results').classList.add('hidden');
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') $('search-results').classList.add('hidden');
   });
 
   updateSourceHint();

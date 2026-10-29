@@ -3,89 +3,96 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Steam 史低计算器</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <meta name="description" content="查询 Steam 当前价与历史最低，并跟踪愿望单价格。">
+  <title>SteamCalc · Steam 史低计算器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
-  <header class="topbar">
-    <h1>Steam 史低计算器</h1>
-    <div class="topbar-controls">
-      <label class="region-label">
-        区域
-        <select id="region-select"></select>
-      </label>
-      <button id="settings-btn" class="btn btn-ghost" type="button">API Key 设置</button>
-    </div>
-  </header>
-
-  <main>
-    <section class="search-section">
-      <form id="search-form">
-        <input id="search-input" type="text" placeholder="输入游戏名，如 Stardew Valley" autocomplete="off">
-        <button class="btn btn-primary" type="submit">搜索</button>
-      </form>
-      <p id="source-hint" class="hint"></p>
-    </section>
-
-    <section id="search-results" class="results hidden"></section>
-
-    <section id="detail" class="detail hidden"></section>
-
-    <section class="wishlist-section">
-      <div class="wishlist-header">
-        <h2>本地愿望单</h2>
-        <div class="wishlist-actions">
-          <button id="import-steam-btn" class="btn btn-ghost" type="button">导入 Steam 愿望单</button>
-          <button id="refresh-wishlist" class="btn btn-ghost" type="button">刷新价格</button>
-        </div>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+  <div class="app-shell">
+    <header class="app-header">
+      <h1 class="app-brand">SteamCalc</h1>
+      <div class="app-controls">
+        <label class="region-control">
+          <span>区域</span>
+          <select id="region-select" aria-label="价格区域"></select>
+        </label>
+        <button id="settings-btn" class="text-button settings-button" type="button">API Key 设置</button>
       </div>
-      <div id="wishlist"></div>
-    </section>
-  </main>
+    </header>
 
-  <dialog id="settings-dialog">
-    <form method="dialog" id="settings-form">
-      <h3>IsThereAnyDeal API Key</h3>
-      <p class="hint">
-        在 <a href="https://isthereanydeal.com/apps/my/" target="_blank" rel="noopener">isthereanydeal.com/apps/my</a>
-        注册一个 App（免费）即可获得 key。key 只保存在你的浏览器 localStorage 中。
-        不填 key 则使用 CheapShark 兜底（仅美元价格）。
-      </p>
-      <input id="api-key-input" type="text" placeholder="粘贴你的 ITAD API key">
-      <div class="dialog-actions">
-        <button id="clear-key-btn" class="btn btn-ghost" type="button">清除 key</button>
-        <button class="btn btn-primary" value="ok">保存</button>
+    <main id="main-content">
+      <section class="search-area" aria-label="搜索游戏">
+        <form id="search-form" class="search-form" role="search">
+          <label for="search-input">查一款游戏</label>
+          <div class="search-line">
+            <input id="search-input" type="search" placeholder="例如 Stardew Valley" aria-controls="search-results" autocomplete="off">
+            <button class="search-submit" type="submit">查价格</button>
+          </div>
+        </form>
+        <p id="source-hint" class="hint"></p>
+        <div id="search-results" class="search-results hidden" aria-live="polite"></div>
+      </section>
+
+      <div class="workspace">
+        <section id="detail" class="detail hidden" aria-label="游戏价格详情"></section>
+        <section class="wishlist-section" aria-labelledby="wishlist-title">
+          <div class="wishlist-header">
+            <h2 id="wishlist-title">愿望单</h2>
+            <div class="wishlist-actions">
+              <button id="import-steam-btn" class="text-button" type="button">导入 Steam 愿望单</button>
+              <button id="refresh-wishlist" class="text-button" type="button">刷新价格</button>
+            </div>
+          </div>
+          <div id="wishlist" class="wishlist-list"></div>
+        </section>
       </div>
-    </form>
-  </dialog>
+    </main>
 
-  <dialog id="steam-dialog">
-    <form method="dialog" id="steam-form">
-      <h3>导入 Steam 愿望单</h3>
-      <p class="hint">
-        填入你的 Steam ID（17 位数字，或 steamcommunity.com/id/xxx、/profiles/xxx 链接）
-        和 Steam Web API key（在
-        <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noopener">steamcommunity.com/dev/apikey</a>
-        免费申请）。愿望单需在 Steam 隐私设置中设为公开。
-        这些信息只保存在你的浏览器 localStorage 中。
-      </p>
-      <input id="steam-id-input" type="text" placeholder="Steam ID 或个人资料链接" autocomplete="off">
-      <input id="steam-key-input" type="text" placeholder="Steam Web API key" autocomplete="off">
-      <p id="steam-import-status" class="hint"></p>
-      <div class="dialog-actions">
-        <button id="steam-close-btn" class="btn btn-ghost" type="button">关闭</button>
-        <button class="btn btn-primary" value="ok">开始导入</button>
-      </div>
-    </form>
-  </dialog>
-
-  <footer>
-    <p>
-      价格数据来自 <a href="https://isthereanydeal.com" target="_blank" rel="noopener">IsThereAnyDeal</a>
+    <footer class="data-footer">
+      价格来自 <a href="https://isthereanydeal.com" target="_blank" rel="noopener">IsThereAnyDeal</a>
       与 <a href="https://www.cheapshark.com" target="_blank" rel="noopener">CheapShark</a>，仅供参考。
-    </p>
-  </footer>
+    </footer>
+  </div>
 
-  <script type="module" src="app.js?v=4"></script>
+  <dialog id="settings-dialog" class="app-dialog" aria-labelledby="settings-title">
+    <form method="dialog" id="settings-form">
+      <div class="dialog-heading">
+        <h2 id="settings-title">API Key 设置</h2>
+        <button id="settings-close-btn" class="text-button" type="button">关闭</button>
+      </div>
+      <p>Key 只保存在当前浏览器。<a href="https://isthereanydeal.com/apps/my/" target="_blank" rel="noopener">免费获取 IsThereAnyDeal Key</a>。</p>
+      <label for="api-key-input">IsThereAnyDeal API Key</label>
+      <input id="api-key-input" type="text" placeholder="粘贴 API Key" autocomplete="off">
+      <p class="dialog-note">不填 Key 时使用 CheapShark，仅显示美元价格。</p>
+      <div class="dialog-actions">
+        <button id="clear-key-btn" class="text-button" type="button">清除</button>
+        <button class="dialog-primary" value="ok">保存设置</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="steam-dialog" class="app-dialog" aria-labelledby="steam-title">
+    <form method="dialog" id="steam-form">
+      <div class="dialog-heading">
+        <h2 id="steam-title">导入 Steam 愿望单</h2>
+        <button id="steam-close-btn" class="text-button" type="button">关闭</button>
+      </div>
+      <p>愿望单需设为公开。信息只保存在当前浏览器，可<a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noopener">免费申请 Steam Key</a>。</p>
+      <label for="steam-id-input">Steam ID 或个人资料链接</label>
+      <input id="steam-id-input" type="text" placeholder="steamcommunity.com/id/…" autocomplete="off">
+      <label for="steam-key-input">Steam Web API Key</label>
+      <input id="steam-key-input" type="text" placeholder="粘贴 Steam Web API Key" autocomplete="off">
+      <p id="steam-import-status" class="dialog-note" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button class="dialog-primary" value="ok">开始导入</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js?v=7"></script>
 </body>
 </html>

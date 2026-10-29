@@ -87,7 +87,7 @@ python3 -m http.server 8000
 ## 文件结构
 
 - `index.html` — 页面结构
-- `style.css` — Steam 风格深色主题
+- `style.css` — 极简浅色主题与响应式双栏布局
 - `api.js` — ITAD / CheapShark / Steam 导入接口封装
 - `api/steam-wishlist.js` — Steam 愿望单中转（Vercel serverless 函数）
 - `logic.js` — 史低判定等纯函数（不碰 DOM，可独立测试）
