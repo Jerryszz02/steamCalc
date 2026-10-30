@@ -53,6 +53,12 @@ python3 -m http.server 8000
 # 浏览器打开 http://localhost:8000
 ```
 
+## UI 设计 demo
+
+打开 <http://localhost:8000/design-demos/> 可对比「查价优先」「愿望单优先」两种极简布局。demo 保留搜索、区域切换、价格对比、愿望单和设置弹窗等交互，但使用明确标注的示例价格，不请求真实 API，也不会保存弹窗中输入的内容。
+
+也可以通过 `?theme=focus`、`?theme=split` 直接打开指定布局。正式页面与数据逻辑不受 demo 影响。
+
 ## 开发
 
 ```bash
@@ -81,11 +87,12 @@ python3 -m http.server 8000
 ## 文件结构
 
 - `index.html` — 页面结构
-- `style.css` — Steam 风格深色主题
+- `style.css` — 极简浅色主题与响应式双栏布局
 - `api.js` — ITAD / CheapShark / Steam 导入接口封装
 - `api/steam-wishlist.js` — Steam 愿望单中转（Vercel serverless 函数）
 - `logic.js` — 史低判定等纯函数（不碰 DOM，可独立测试）
 - `app.js` — 入口模块：搜索、详情渲染、愿望单逻辑
+- `design-demos/` — 两种可切换的极简 UI 布局与示例数据
 - `tests/` — Vitest 测试用例
 
 ## 说明

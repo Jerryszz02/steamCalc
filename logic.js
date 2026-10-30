@@ -21,6 +21,16 @@ export function computeVerdict(currentAmount, lowAmount) {
   return { cls: 'bad', text: `高于史低 ${diffPct.toFixed(0)}%，建议再等等` };
 }
 
+export function getVerdictShort(verdict) {
+  if (!verdict) return '';
+  if (verdict.text.startsWith('新史低')) return '新史低';
+  return {
+    good: '已达史低',
+    warn: '接近史低',
+    bad: '再等等',
+  }[verdict.cls] || '';
+}
+
 // 从 ITAD prices/v3 的单个条目中提取摘要
 export function summarizeItad(entry) {
   const deal = entry.deals && entry.deals[0];

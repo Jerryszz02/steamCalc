@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SteamCalc 的两种极简界面布局：查价优先与愿望单优先。">
+  <title>SteamCalc · 极简 UI 对比</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="base.css">
+</head>
+<body class="theme-focus" data-theme="focus">
+  <a class="skip-link" href="#demo-root">跳到演示内容</a>
+  <header class="demo-switcher">
+    <a class="switcher-brand" href="../index.html" aria-label="返回 SteamCalc 原版">SteamCalc <span>设计 demo</span></a>
+    <nav class="theme-tabs" aria-label="选择界面布局">
+      <button type="button" data-theme-target="focus" aria-pressed="true">查价优先</button>
+      <button type="button" data-theme-target="split" aria-pressed="false">愿望单优先</button>
+    </nav>
+    <span class="switcher-note">示例价格</span>
+  </header>
+
+  <main id="demo-root" tabindex="-1"></main>
+  <div id="demo-toast" class="demo-toast" role="status" aria-live="polite"></div>
+
+  <dialog id="settings-dialog" class="demo-dialog" aria-labelledby="settings-title">
+    <form method="dialog" id="settings-form">
+      <div class="dialog-heading">
+        <h2 id="settings-title">API Key 设置</h2>
+        <button class="text-button" type="button" data-close-dialog>关闭</button>
+      </div>
+      <p>用于查询多区价格。此 demo 不会保存或发送输入内容。</p>
+      <label for="api-key-input">IsThereAnyDeal API Key</label>
+      <input id="api-key-input" type="text" placeholder="粘贴 API Key" autocomplete="off">
+      <div class="dialog-actions">
+        <button class="text-button" type="button" id="clear-key-btn">清除</button>
+        <button class="dialog-primary" value="save">保存设置</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="steam-dialog" class="demo-dialog" aria-labelledby="steam-title">
+    <form method="dialog" id="steam-form">
+      <div class="dialog-heading">
+        <h2 id="steam-title">导入 Steam 愿望单</h2>
+        <button class="text-button" type="button" data-close-dialog>关闭</button>
+      </div>
+      <p>填写公开的 Steam 资料和 Key。演示提交只会添加一款示例游戏。</p>
+      <label for="steam-id-input">Steam ID 或个人资料链接</label>
+      <input id="steam-id-input" type="text" placeholder="steamcommunity.com/id/…" autocomplete="off" required>
+      <label for="steam-key-input">Steam Web API Key</label>
+      <input id="steam-key-input" type="text" placeholder="粘贴 Steam Web API Key" autocomplete="off" required>
+      <div class="dialog-actions">
+        <button class="text-button" type="button" data-close-dialog>取消</button>
+        <button class="dialog-primary" value="import">开始导入</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="demo.js"></script>
+</body>
+</html>
